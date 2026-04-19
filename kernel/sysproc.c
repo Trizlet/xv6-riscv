@@ -107,3 +107,31 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_set_priority(void)
+{
+  int priority;
+  argint(0, &priority);
+  if(priority < 0 || priority > 100)
+    return -1;
+  
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  int old_priority = p->priority;
+  p->priority = priority;
+  p->wait_count = 0; // Reset wait count on change
+  release(&p->lock);
+  
+  return old_priority;
+}
+
+uint64
+sys_get_priority(void)
+{
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  int prio = p->priority;
+  release(&p->lock);
+  return prio;
+}

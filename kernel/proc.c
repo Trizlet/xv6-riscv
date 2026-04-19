@@ -145,6 +145,8 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  p->priority = 10;           // Default priority
+  p->wait_count = 0;          // No waiting yet
 
   return p;
 }
@@ -429,34 +431,63 @@ scheduler(void)
 
   c->proc = 0;
   for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
+    // Enable and disable interrupts to prevent the CPU from hanging
     intr_on();
     intr_off();
 
-    int found = 0;
+    // We need to keep track of the 'best' process to run
+    struct proc *best_p = 0;
+    int lowest_priority_value = 32; // Start with a value higher than any possible priority (0-31)
+
+    // SCAN THE PROCESS TABLE
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+      if(p->state == RUNNABLE) {
+        
+        // STARVATION PREVENTION
+        p->wait_count++;
+        if(p->wait_count > 100) {
+          if(p->priority > 0) {
+            p->priority--; // Boost priority (subtracting 1 makes it more important)
+          }
+          p->wait_count = 0; // Reset its wait timer
+        }
+
+        // FIND THE HIGHEST PRIORITY
+        // (lower value = higher priority)
+        if(p->priority < lowest_priority_value) {
+          lowest_priority_value = p->priority;
+          
+          if(best_p != 0) {
+            release(&best_p->lock);
+          }
+          
+          // Set the new best process
+          best_p = p;
+          continue;
+        }
       }
+      
       release(&p->lock);
     }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
+
+    // RUN THE CHOSEN PROCESS
+    if(best_p != 0) {
+      best_p->state = RUNNING;
+      c->proc = best_p;
+
+      // This command does the actual context switch to the process
+      swtch(&c->context, &best_p->context);
+
+      // (continuing)
+      
+      c->proc = 0;
+      best_p->wait_count = 0; // Reset the wait count for the process that just ran
+      
+      release(&best_p->lock);
+    } else {
+      // If we found zero runnable processes, put the CPU to sleep
       asm volatile("wfi");
     }
   }
@@ -495,6 +526,12 @@ yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
+  
+  // If the process is being a hog and is forced to yield, punish it
+  if(p->priority < 31) {
+    p->priority++;
+  }
+  
   p->state = RUNNABLE;
   sched();
   release(&p->lock);
@@ -557,6 +594,11 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
+
+  // If the process willingly sleeps, reward it.
+  if(p->priority > 0) {
+    p->priority--; 
+  }
 
   sched();
 

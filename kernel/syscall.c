@@ -94,6 +94,8 @@ extern uint64 sys_getpid(void);
 extern uint64 sys_sbrk(void);
 extern uint64 sys_pause(void);
 extern uint64 sys_uptime(void);
+extern uint64 sys_set_priority(void);
+extern uint64 sys_get_priority(void);
 extern uint64 sys_open(void);
 extern uint64 sys_write(void);
 extern uint64 sys_mknod(void);
@@ -125,7 +127,9 @@ static uint64 (*syscalls[])(void) = {
 [SYS_unlink]  sys_unlink,
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
-[SYS_close]   sys_close,
+[SYS_close]    sys_close,
+[SYS_set_priority] sys_set_priority,
+[SYS_get_priority] sys_get_priority,
 };
 
 void
