@@ -730,3 +730,23 @@ procdump(void)
     printf("\n");
   }
 }
+
+// Kill all processes except init and shell.
+// Called by consoleintr() when ^C is pressed.
+void
+kill_foreground_processes(void)
+{
+  struct proc *p;
+
+  printf("\n^C received. Killing user processes...\n");
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    // PID 1 is init, PID 2 is shell. Don't kill those.
+    if(p->state != UNUSED && p->pid > 2){
+      p->killed = 1;
+      if(p->state == SLEEPING){
+        // Wake up process from sleep so it can exit.
+        p->state = RUNNABLE;
+      }
+    }
+    release(&p->lock);

@@ -147,6 +147,9 @@ consoleintr(int c)
   case C('P'):  // Print process list.
     procdump();
     break;
+  case C('C'):  // Kill foreground processes.
+    kill_foreground_processes();
+    break;
   case C('U'):  // Kill line.
     while(cons.e != cons.w &&
           cons.buf[(cons.e-1) % INPUT_BUF_SIZE] != '\n'){
