@@ -4,23 +4,31 @@ The purpose of this fork is to experiment with an alternate adaptive priority ba
 
 # Prerequisites
 
-```sudo apt install git build-essential gdb-multiarch qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu```
+```
+sudo apt install git build-essential gdb-multiarch qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu
+```
 
 or
 
-```sudo dnf install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu qemu-system-riscv```
+```
+sudo dnf install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu qemu-system-riscv
+```
 
 # Compilation
 
-```make```
+```
+make
+```
 
 # Running with QEMU
 
-```make qemu```
+```
+make qemu
+```
 
 # Usage & Exiting
 
-Once booted, you will be dropped into a simple shell. Run ```ls``` to see available files and programs. To exit QEMU: Press Ctrl-a then x.
+Once booted, you will be dropped into a simple shell. Run ls to see available files and programs. To exit QEMU: Press Ctrl-a then x.
 
 # Original Readme
 
